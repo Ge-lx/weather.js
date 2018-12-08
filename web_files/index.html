@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<!-- saved from url=(0071)https://www.chartjs.org/samples/latest/scales/time/line-point-data.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>Time Scale Point Data</title>
+	<script src="./js/moment.min.js"></script>
+	<script src="./js/Chart.js"></script>
+	<style type="text/css">/* Chart.js */
+		@-webkit-keyframes chartjs-render-animation{from{opacity:0.99}to{opacity:1}}@keyframes chartjs-render-animation{from{opacity:0.99}to{opacity:1}}.chartjs-render-monitor{-webkit-animation:chartjs-render-animation 0.001s;animation:chartjs-render-animation 0.001s;}
+	</style>
+	<script src="./js/utils.js"></script>
+	<style>
+		canvas {
+			-moz-user-select: none;
+			-webkit-user-select: none;
+			-ms-user-select: none;
+		}
+	</style>
+</head>
+
+<body>
+	<div style="width:75%;"><div class="chartjs-size-monitor" style="position: absolute; left: 0px; top: 0px; right: 0px; bottom: 0px; overflow: hidden; pointer-events: none; visibility: hidden; z-index: -1;"><div class="chartjs-size-monitor-expand" style="position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;pointer-events:none;visibility:hidden;z-index:-1;"><div style="position:absolute;width:1000000px;height:1000000px;left:0;top:0"></div></div><div class="chartjs-size-monitor-shrink" style="position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;pointer-events:none;visibility:hidden;z-index:-1;"><div style="position:absolute;width:200%;height:200%;left:0; top:0"></div></div></div>
+		<canvas id="canvas" width="1428" height="714" class="chartjs-render-monitor" style="display: block; width: 1428px; height: 714px;"></canvas>
+	</div>
+	<br>
+	<br>
+	<button id="updateData">Daten aktualisieren</button>
+	<script>
+
+		async function loadData () {
+			return new Promise((resolve, reject) =>{
+				xhrRequest('GET', '/data', null , resolve)
+			});
+		}
+
+		function newDate(days) {
+			return moment().add(days, 'd').toDate();
+		}
+
+		function newDateString(days) {
+			return moment().add(days, 'd').format();
+		}
+
+		var color = Chart.helpers.color;
+		var config = {
+			type: 'line',
+			data: {
+				datasets: [{
+					label: 'Temperatur [*C]',
+					backgroundColor: color(window.chartColors.red).alpha(0.5).rgbString(),
+					borderColor: window.chartColors.red,
+					fill: false,
+					data: [],
+					yAxisID: 'temp'
+				}, {
+					label: 'Luftfeuchte [%]',
+					backgroundColor: color(window.chartColors.blue).alpha(0.5).rgbString(),
+					borderColor: window.chartColors.blue,
+					fill: false,
+					data: [],
+					yAxisID: 'humidity'
+				}, {
+					label: 'Luftdruck [mBar]',
+					backgroundColor: color(window.chartColors.green).alpha(0.5).rgbString(),
+					borderColor: window.chartColors.green,
+					fill: false,
+					data: [],
+					yAxisID: 'pressure'
+				}]
+			},
+			options: {
+				responsive: true,
+				title: {
+					display: true,
+					text: 'Aktuelle Wetterverhältnisse'
+				},
+				scales: {
+					xAxes: [{
+						type: 'time',
+						display: true,
+						scaleLabel: {
+							display: true,
+							labelString: 'Datetime'
+						},
+						ticks: {
+							major: {
+								fontStyle: 'bold',
+								fontColor: '#FF0000'
+							}
+						}
+					}],
+					yAxes: [{
+						display: true,
+						id: 'temp',
+						position: 'left',
+						scaleLabel: {
+							display: true,
+							labelString: 'value'
+						}
+					},{
+						display: true,
+						id: 'pressure',
+						position: 'right',
+						scaleLabel: {
+							display: true,
+							labelString: 'value'
+						}
+					},{
+						display: true,
+						id: 'humidity',
+						position: 'right',
+						scaleLabel: {
+							display: true,
+							labelString: 'value'
+						}
+					}]
+				}
+			}
+		};
+
+		window.onload = async function() {
+			var ctx = document.getElementById('canvas').getContext('2d');
+
+			var data = await loadData();
+			config.data.datasets[0].data = data.temp_data;
+			config.data.datasets[1].data = data.humidity_data;
+			config.data.datasets[2].data = data.pressure_data;
+
+			window.myLine = new Chart(ctx, config);
+		};
+
+		document.getElementById('updateData').addEventListener('click', async function() {
+			var data = await loadData();
+			config.data.datasets[0].data = data.temp_data;
+			config.data.datasets[1].data = data.humidity_data;
+			config.data.datasets[2].data = data.pressure_data;
+			window.myLine.update();
+		});
+
+	</script>
+
+
+
+</body></html>
