@@ -8,8 +8,8 @@ const delay = 10 * 1000;
 
 
 app.use(express.static('web_files'));
-app.get('/data', (req, res, next) => {
-  getAllData().then( data => {
+app.get('/data/:from/:to', (req, res, next) => {
+  getAllData(parseInt(req.params.from), parseInt(req.params.to)).then( data => {
     return res.status(200).json(data);
   }).catch(next)
 })
@@ -22,27 +22,38 @@ dbPromise.then( db => {
 })
 
 async function logData (data) {
-  let db = await dbPromise
-  let stmt = await db.prepare('INSERT INTO Weather VALUES (?, ?, ?, ?);');
-  stmt.run(data.temperature, data.humidity, data.pressure, data.timestamp);
+  try {
+    console.log(`Logging Data: ${new Date().toLocaleString('de-DE')} with Temp: ${data.temperature}C, Hum: ${data.humidity}%, Pres: ${data.pressure}mBar.`);
+
+    let db = await dbPromise;
+    let stmt = await db.prepare('INSERT INTO Weather VALUES (?, ?, ?, ?);');
+    stmt.run(data.temperature, data.humidity, data.pressure, data.timestamp);
+  } catch (error) {
+    console.error('Error writing to database: ', error)
+  } 
 }
 
-async function getAllData () {
-  let db = await dbPromise
+async function getAllData (from, to) {
+  try {
+    let db = await dbPromise
+    let res = await db.all(`SELECT * FROM Weather WHERE (mesaurement_ts > ${from} AND mesaurement_ts < ${to});`);
+    
+    console.log(`Returning ${res.length} measurements between ${new Date(from).toLocaleString('de-De')} and ${new Date(to).toLocaleString('de-De')}.`);
 
-  let res = await db.all(`SELECT * FROM Weather WHERE datetime(mesaurement_ts / 1000, 'unixepoch') > datetime('now', '-1 HOUR');`)
-  
-  temp_data = res.map(m => {
-    return { x: m.mesaurement_ts, y: m.temperature };
-  })
-  pressure_data = res.map(m => {
-    return { x: m.mesaurement_ts, y: m.pressure }
-  })
-  humidity_data = res.map(m => {
-    return { x: m.mesaurement_ts, y: m.humidity }
-  })
+    temp_data = res.map(m => {
+      return { x: m.mesaurement_ts, y: m.temperature };
+    })
+    pressure_data = res.map(m => {
+      return { x: m.mesaurement_ts, y: m.pressure }
+    })
+    humidity_data = res.map(m => {
+      return { x: m.mesaurement_ts, y: m.humidity }
+    })
 
-  return { temp_data, pressure_data, humidity_data };
+    return { temp_data, pressure_data, humidity_data };
+  } catch (error) {
+    console.error('Error reading from database: ' + error);
+  }
 }
 
 
@@ -79,12 +90,10 @@ function readData () {
     res.on('data', (chunk) => { rawData += chunk; });
     res.on('end', () => {
       try {
-        let data = parseData(rawData);
+        const data = parseData(rawData);
         logData(data).catch( err => {
           console.log('Error inserting into database: ' + err);
         });
-
-        console.log(data);
       } catch (e) {
         console.error(e.message);
       } finally {
@@ -98,4 +107,3 @@ function readData () {
 }
 
 readData();
-getAllData();

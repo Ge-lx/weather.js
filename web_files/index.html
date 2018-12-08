@@ -24,11 +24,15 @@
 	<br>
 	<br>
 	<button id="updateData">Daten aktualisieren</button>
+	<button id="hourMinus">-1 Stunde</button>
+	<button id="hourPlus">+1 Stunde</button>
+	<input id="from" type="datetime-local">
+	<input id="to" type="datetime-local">
 	<script>
 
-		async function loadData () {
+		async function loadData (from, to) {
 			return new Promise((resolve, reject) =>{
-				xhrRequest('GET', '/data', null , resolve)
+				xhrRequest('GET', `/data/${from}/${to}`, null , resolve)
 			});
 		}
 
@@ -117,10 +121,27 @@
 			}
 		};
 
+
+		const update = async function () {
+			var from = Date.parse(document.getElementById('from').value);
+			var to = Date.parse(document.getElementById('to').value);
+
+			var data = await loadData(from, to);
+			config.data.datasets[0].data = data.temp_data;
+			config.data.datasets[1].data = data.humidity_data;
+			config.data.datasets[2].data = data.pressure_data;
+			window.myLine.update();
+		}
+
 		window.onload = async function() {
 			var ctx = document.getElementById('canvas').getContext('2d');
 
-			var data = await loadData();
+			document.getElementById('to').value = new Date().toDateInputValue();
+			let min2 = new Date()
+			min2.setHours(min2.getHours() - 2)
+			document.getElementById('from').value = min2.toDateInputValue();
+
+			var data = await loadData(min2.getTime(), Date.now());
 			config.data.datasets[0].data = data.temp_data;
 			config.data.datasets[1].data = data.humidity_data;
 			config.data.datasets[2].data = data.pressure_data;
@@ -128,13 +149,30 @@
 			window.myLine = new Chart(ctx, config);
 		};
 
-		document.getElementById('updateData').addEventListener('click', async function() {
-			var data = await loadData();
-			config.data.datasets[0].data = data.temp_data;
-			config.data.datasets[1].data = data.humidity_data;
-			config.data.datasets[2].data = data.pressure_data;
-			window.myLine.update();
+		document.getElementById('updateData').addEventListener('click', update);
+		document.getElementById('hourPlus').addEventListener('click', () => {
+			var from = new Date(document.getElementById('from').value);
+			var to = new Date(document.getElementById('to').value);
+			from.setHours(from.getHours() + 1);
+			to.setHours(to.getHours() + 1);
+
+			document.getElementById('from').value = from.toDateInputValue();
+			document.getElementById('to').value = to.toDateInputValue();
+
+			setTimeout(update, 0);
 		});
+		document.getElementById('hourMinus').addEventListener('click', () => {
+			var from = new Date(document.getElementById('from').value);
+			var to = new Date(document.getElementById('to').value);
+			from.setHours(from.getHours() - 1);
+			to.setHours(to.getHours() - 1);
+
+			document.getElementById('from').value = from.toDateInputValue();
+			document.getElementById('to').value = to.toDateInputValue();
+
+			setTimeout(update, 0);
+		});
+
 
 	</script>
 
