@@ -4,7 +4,7 @@ const express = require('express');
 
 const app = express();
 const dbPromise = sqlite.open('./database.sqlite', { Promise });
-const delay = 10 * 1000;
+const delay = 60 * 1000;
 
 
 app.use(express.static('web_files'));
